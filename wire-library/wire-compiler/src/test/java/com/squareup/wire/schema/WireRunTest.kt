@@ -523,6 +523,29 @@ class WireRunTest {
   }
 
   @Test
+  fun generateMessageDescriptor() {
+    writeBlueProto()
+    writeRedProto()
+    writeTriangleProto()
+
+    val wireRun = WireRun(
+        sourcePath = listOf(
+            Location.get("colors/src/main/proto"),
+            Location.get("polygons/src/main/proto"),
+        ),
+        targets = listOf(MessageDescriptorTarget(
+            outDirectory = "generated/descriptors",
+            includes = listOf("squareup.colors.Blue", "squareup.colors.Red"),
+        ))
+    )
+    wireRun.execute(fs, logger)
+
+    assertThat(fs.find("generated")).containsExactly(
+        "generated/descriptors/squareup/colors/Blue.descriptor",
+        "generated/descriptors/squareup/colors/Red.descriptor")
+  }
+
+  @Test
   fun noSuchClass() {
     writeTriangleProto()
 

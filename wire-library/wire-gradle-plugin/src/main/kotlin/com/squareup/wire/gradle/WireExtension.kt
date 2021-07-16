@@ -250,6 +250,12 @@ open class WireExtension(project: Project) {
     outputs += protoOutput
   }
 
+  fun encodeDescriptor(action: Action<MessageDescriptorOutput>) {
+    val output = objectFactory.newInstance(MessageDescriptorOutput::class.java)
+    action.execute(output)
+    outputs += output
+  }
+
   fun custom(action: Action<CustomOutput>) {
     val customOutput = objectFactory.newInstance(CustomOutput::class.java)
     action.execute(customOutput)

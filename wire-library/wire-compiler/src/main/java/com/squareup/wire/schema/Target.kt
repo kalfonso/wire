@@ -25,6 +25,7 @@ import com.squareup.wire.java.JavaGenerator
 import com.squareup.wire.kotlin.KotlinGenerator
 import com.squareup.wire.kotlin.RpcCallStyle
 import com.squareup.wire.kotlin.RpcRole
+import com.squareup.wire.schema.internal.SchemaEncoder
 import com.squareup.wire.swift.SwiftGenerator
 import java.io.IOException
 import java.io.Serializable
@@ -699,5 +700,93 @@ interface CustomHandlerBeta {
     logger: WireLogger,
     profileLoader: ProfileLoader
   ): Target.SchemaHandler
+}
+
+data class MessageDescriptorTarget(
+  override val includes: List<String>,
+  override val outDirectory: String
+) : Target() {
+  override val excludes: List<String> = listOf()
+  override val exclusive: Boolean = false
+
+  override fun copyTarget(
+    includes: List<String>,
+    excludes: List<String>,
+    exclusive: Boolean,
+    outDirectory: String
+  ): Target {
+    return copy(
+        includes = includes,
+        outDirectory = outDirectory,
+    )
+  }
+
+  override fun newHandler(
+    schema: Schema,
+    moduleName: String?,
+    upstreamTypes: Map<ProtoType, String>,
+    fs: FileSystem,
+    logger: WireLogger,
+    profileLoader: ProfileLoader
+  ): SchemaHandler {
+    val modulePath = run {
+      val outPath = outDirectory.toPath()
+      if (moduleName != null) {
+        outPath / moduleName
+      } else {
+        outPath
+      }
+    }
+    fs.createDirectories(modulePath)
+
+    return object : SchemaHandler {
+      private val encoder: SchemaEncoder = SchemaEncoder(schema)
+
+      override fun handle(type: Type): Path? {
+        val dps = type.typesAndNestedTypes()
+        if (isMessageType(type) && includes.contains(type.type.toString())) {
+          return writeFileDescriptor(type.type, toFileDescriptor(schema, type))
+        }
+        return null
+      }
+
+      override fun handle(service: Service): List<Path> {
+        return emptyList()
+      }
+
+      override fun handle(extend: Extend, field: Field): Path? {
+        return null
+      }
+
+      private fun writeFileDescriptor(protoType: ProtoType, content: String): Path {
+        val path = outDirectory.toPath() / toPath(protoType).joinToString(separator = "/")
+        fs.createDirectories(path.parent!!)
+        fs.write(path) {
+          writeUtf8(content)
+        }
+        return path
+      }
+
+      /** Returns the path where the corresponding proto file is `squareup/colors/Blue.descriptor`. */
+      private fun toPath(protoType: ProtoType): List<String> {
+        val result = mutableListOf<String>()
+        for (part in protoType.toString().split(".")) {
+          result += part
+        }
+        result[result.size - 1] = (result[result.size - 1]) + ".descriptor"
+        return result
+      }
+
+      private fun toFileDescriptor(schema: Schema, type: Type): String {
+        val protoFile = schema.protoFile(type.type)
+            ?: throw RuntimeException("Could not find proto file for type ${type.type.simpleName}")
+        val result = encoder.encode(protoFile)
+        return result.base64()
+      }
+    }
+  }
+
+  private fun isMessageType(type: Type) =
+      type.javaClass == MessageType::class.java
 }
 

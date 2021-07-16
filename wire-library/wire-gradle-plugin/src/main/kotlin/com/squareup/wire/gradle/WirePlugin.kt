@@ -119,6 +119,18 @@ class WirePlugin : Plugin<Project> {
 
     addWireRuntimeDependency(hasJavaOutput, hasKotlinOutput)
 
+    val hasMessageDescriptorOutput = outputs.any { it is MessageDescriptorOutput }
+    if (hasMessageDescriptorOutput) {
+      val libraryProtoSources = File(project.libraryProtoOutputPath())
+      val sourceSets = project.extensions.getByType(SourceSetContainer::class.java)
+      sourceSets.getByName("main") { main: SourceSet ->
+        main.resources.srcDir(libraryProtoSources)
+      }
+      extension.encodeDescriptor { messageDescriptorOutput ->
+        messageDescriptorOutput.out = libraryProtoSources.path
+      }
+    }
+
     val protoPathInput = WireInput(project.configurations.getByName("protoPath"))
     protoPathInput.addTrees(project, extension.protoTrees)
     protoPathInput.addJars(project, extension.protoJars)

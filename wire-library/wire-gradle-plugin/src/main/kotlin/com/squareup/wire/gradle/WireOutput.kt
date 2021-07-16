@@ -20,6 +20,7 @@ import com.squareup.wire.kotlin.RpcRole
 import com.squareup.wire.schema.CustomTargetBeta
 import com.squareup.wire.schema.JavaTarget
 import com.squareup.wire.schema.KotlinTarget
+import com.squareup.wire.schema.MessageDescriptorTarget
 import com.squareup.wire.schema.ProtoTarget
 import com.squareup.wire.schema.Target
 import javax.inject.Inject
@@ -112,6 +113,16 @@ open class KotlinOutput @Inject constructor() : WireOutput() {
 open class ProtoOutput @Inject constructor() : WireOutput() {
   override fun toTarget(outputDirectory: String): ProtoTarget {
     return ProtoTarget(outDirectory = outputDirectory)
+  }
+}
+
+open class MessageDescriptorOutput @Inject constructor() : WireOutput() {
+  var includes: List<String>? = null
+  override fun toTarget(outputDirectory: String): Target {
+    return MessageDescriptorTarget(
+        includes = includes ?: listOf("*"),
+        outDirectory = outputDirectory
+    )
   }
 }
 
