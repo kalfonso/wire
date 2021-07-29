@@ -77,6 +77,10 @@ class SchemaEncoder(
     return fileEncoder.encode(protoFile).toByteString()
   }
 
+  fun encode(message: MessageType): ByteString {
+    return messageEncoder.encode(message).toByteString()
+  }
+
   private val fileEncoder : Encoder<ProtoFile> = object : Encoder<ProtoFile>() {
     override fun encode(writer: ProtoWriter, value: ProtoFile) {
       STRING.encodeWithTag(writer, 1, value.location.path)

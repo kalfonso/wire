@@ -11,6 +11,7 @@ import com.google.protobuf.DescriptorProtos.MethodDescriptorProto
 import com.google.protobuf.DescriptorProtos.MethodOptions
 import com.google.protobuf.DescriptorProtos.ServiceDescriptorProto
 import com.google.protobuf.UnknownFieldSet
+import com.squareup.wire.schema.MessageType
 import com.squareup.wire.schema.RepoBuilder
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
@@ -209,5 +210,60 @@ class SchemaEncoderTest {
           .build())
         .build())
       .build())
+  }
+
+  @Test fun `encode message`() {
+    val schema = RepoBuilder()
+        .add(
+            "squareup/test/message.proto", """
+            |syntax = "proto3";
+            |
+            |package squareup.test;
+            |
+            |import "squareup/test/other_message.proto";
+            |
+            |message AMessage {
+            |  string a_val = 1;
+            |  squareup.test.OtherMessage other_message = 2;
+            |}
+            |""".trimMargin()
+        )
+        .add(
+            "squareup/test/other_message.proto", """
+            |syntax = "proto3";
+            |
+            |package squareup.test;
+            |
+            |message OtherMessage {
+            |  string other_val = 1;
+            |}
+            |""".trimMargin()
+        )
+        .schema()
+
+    val testProto = schema.protoFile("squareup/test/message.proto")!!
+    val testMessage = testProto.types
+        .filterIsInstance<MessageType>()
+        .first { it.type.simpleName == "AMessage" }
+    val encoded = SchemaEncoder(schema).encode(testMessage)
+
+    val actual = DescriptorProto.parseFrom(encoded.toByteArray())
+    val expected = DescriptorProto.newBuilder()
+        .setName("AMessage")
+        .addField(FieldDescriptorProto.newBuilder()
+            .setType(FieldDescriptorProto.Type.TYPE_STRING)
+            .setName("a_val")
+            .setNumber(1)
+            .setLabel(FieldDescriptorProto.Label.LABEL_OPTIONAL)
+            .build())
+        .addField(FieldDescriptorProto.newBuilder()
+            .setType(FieldDescriptorProto.Type.TYPE_MESSAGE)
+            .setTypeName(".squareup.test.OtherMessage")
+            .setName("other_message")
+            .setNumber(2)
+            .setLabel(FieldDescriptorProto.Label.LABEL_OPTIONAL)
+            .build())
+        .build()
+    assertThat(actual).isEqualTo(expected)
   }
 }

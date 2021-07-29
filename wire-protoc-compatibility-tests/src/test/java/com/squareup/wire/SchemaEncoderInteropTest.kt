@@ -15,15 +15,18 @@
  */
 package com.squareup.wire
 
+import com.google.protobuf.DescriptorProtos
 import com.google.protobuf.DescriptorProtos.FileDescriptorProto
+import com.google.protobuf.Descriptors
 import com.google.protobuf.ExtensionRegistry
 import com.squareup.wire.schema.Location
+import com.squareup.wire.schema.MessageType
 import com.squareup.wire.schema.ProtoFile
 import com.squareup.wire.schema.SchemaLoader
 import com.squareup.wire.schema.internal.SchemaEncoder
-import java.nio.file.FileSystems
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
+import java.nio.file.FileSystems
 import squareup.proto2.kotlin.alltypes.AllTypesOuterClass as AllTypesOuterClassP2
 import squareup.proto2.kotlin.interop.InteropServiceOuterClass as InteropServiceOuterClassP2
 import squareup.proto2.kotlin.interop.InteropTest as InteropTestP2
@@ -75,6 +78,17 @@ class SchemaEncoderInteropTest {
       wireProtoFile = schema.protoFile("squareup/proto3/kotlin/alltypes/all_types_test_proto3_optional.proto")!!,
       protocProtoFile = AllTypesOuterClassP3.getDescriptor().toProto()
     )
+  }
+
+  @Test fun `proto2 message type`() {
+    val messageType = schema.getType("squareup.proto2.kotlin.alltypes.AllTypes") as MessageType
+    val schemaEncoder = SchemaEncoder(schema)
+    val encoded = schemaEncoder.encode(messageType)
+    val wireMessageDescriptor = DescriptorProtos.DescriptorProto.parseFrom(encoded.toByteArray())
+    val protoMessageDescriptor = AllTypesOuterClassP2.AllTypes.getDescriptor()
+    val unwantedValueStripper = UnwantedValueStripper(clearJsonName = true)
+    assertThat(unwantedValueStripper.stripOptionsAndDefaults(wireMessageDescriptor))
+        .isEqualTo(unwantedValueStripper.stripOptionsAndDefaults(protoMessageDescriptor.toProto()))
   }
 
   /**
