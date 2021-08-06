@@ -131,4 +131,8 @@ object deps {
     val schema = "com.squareup.wire:wire-schema"
     val testUtils = "com.squareup.wire:wire-test-utils"
   }
+
+  val schemaRegistryClient = "io.confluent:kafka-schema-registry-client:6.2.0"
+  val googleApisCommonProtos = "com.google.api.grpc:proto-google-common-protos:2.3.2"
+  val kafkaClients = "org.apache.kafka:kafka-clients:2.4.0"
 }

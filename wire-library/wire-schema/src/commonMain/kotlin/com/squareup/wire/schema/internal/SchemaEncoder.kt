@@ -33,6 +33,7 @@ import com.squareup.wire.schema.ProtoType
 import com.squareup.wire.schema.Rpc
 import com.squareup.wire.schema.Schema
 import com.squareup.wire.schema.Service
+import com.squareup.wire.schema.Type
 import okio.ByteString
 import okio.ByteString.Companion.toByteString
 
@@ -73,6 +74,14 @@ class SchemaEncoder(
 
   fun encode(protoFile: ProtoFile): ByteString {
     return fileEncoder.encode(protoFile).toByteString()
+  }
+
+  fun encode(type: Type): ByteString {
+    return when (type) {
+      is MessageType -> messageEncoder.encode(type).toByteString()
+      is EnumType -> enumEncoder.encode(type).toByteString()
+      else -> throw RuntimeException("Only support message and enum types")
+    }
   }
 
   private val fileEncoder : Encoder<ProtoFile> = object : Encoder<ProtoFile>() {

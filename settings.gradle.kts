@@ -38,5 +38,6 @@ includeBuild("wire-library") {
     substitute(module("com.squareup.wire:wire-runtime")).with(project(":wire-runtime"))
     substitute(module("com.squareup.wire:wire-schema")).with(project(":wire-schema"))
     substitute(module("com.squareup.wire:wire-test-utils")).with(project(":wire-test-utils"))
+    substitute(module("com.squareup.wire:wire-kafka")).with(project(":wire-kafka"))
   }
 }
