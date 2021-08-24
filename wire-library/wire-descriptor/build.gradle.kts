@@ -7,6 +7,7 @@ dependencies {
   implementation(deps.okio.jvm)
   implementation(deps.protobuf.java)
   implementation(project(":wire-schema"))
+  implementation("io.github.classgraph:classgraph:4.8.115")
 
   testImplementation(deps.wire.gsonSupport)
   testImplementation(deps.wire.moshiAdapter)

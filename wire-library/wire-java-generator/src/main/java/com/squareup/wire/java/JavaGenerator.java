@@ -22,7 +22,6 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Ordering;
-import com.google.protobuf.Descriptors;
 import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
@@ -78,7 +77,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.IntStream;
 import javax.annotation.Nullable;
 import okio.ByteString;
 
@@ -707,7 +705,6 @@ public final class JavaGenerator {
     if (!emitCompact) {
       builder.addMethod(messageToString(nameAllocator, type));
     }
-    builder.addMethod(messageDescriptor(nameAllocator, type));
 
     builder.addType(builder(nameAllocator, type, javaType, builderJavaType));
 
@@ -959,11 +956,20 @@ public final class JavaGenerator {
       adapter.addModifiers(PUBLIC, ABSTRACT);
     }
 
+    ProtoFile protoFile = schema.protoFile(type.getType());
+    if (protoFile == null) {
+      throw new RuntimeException(
+          String.format("could not find proto file for type %s", type));
+    }
+    String protoFilePackage = protoFile.getPackageName() == null ? "" : protoFile.getPackageName();
+    String path =
+        String.format("%s/%s.desc", protoFilePackage.replaceAll("\\.", "/"), protoFile.name());
+
     adapter.addMethod(MethodSpec.constructorBuilder()
         .addModifiers(PUBLIC)
-        .addStatement("super($T.LENGTH_DELIMITED, $T.class, $S, $T.$L, null)",
+        .addStatement("super($T.LENGTH_DELIMITED, $T.class, $S, $T.$L, null, $S)",
             FieldEncoding.class, javaType, type.getType().getTypeUrl(), Syntax.class,
-            type.getSyntax().name())
+            type.getSyntax().name(), path)
         .build());
 
     if (!useBuilder) {
@@ -1731,70 +1737,6 @@ public final class JavaGenerator {
     result.addStatement("return builder.replace(0, 2, \"$L{\").append('}').toString()",
         type.getType().getSimpleName());
 
-    return result.build();
-  }
-
-  // Example:
-  //
-  // fun getDescriptor() {
-  //   TypeDescriptor.getMessageDescriptor(
-  //      "path/to/generated/descriptor",
-  //      1,
-  //      [dependencies]
-  //   )
-  //}
-  private MethodSpec messageDescriptor(NameAllocator nameAllocator, MessageType type) {
-    MethodSpec.Builder result = MethodSpec.methodBuilder("getDescriptor")
-        .addModifiers(PUBLIC)
-        .returns(Descriptors.Descriptor.class);
-
-    ProtoFile protoFile = schema.protoFile(type.getType());
-    if (protoFile == null) {
-      throw new RuntimeException(
-          String.format("could not find proto file for type %s", type.toString()));
-    }
-    String path = protoFile.javaPackage();
-    if (path == null) {
-      path = protoFile.getPackageName();
-    }
-    if (path == null) {
-      path = "";
-    }
-    path = path.replaceAll("\\.", "/") + "/" + protoFile.name() + ".descriptor";
-
-    List<Type> types = protoFile.getTypes();
-    int pos = -1;
-    for (Type t : types) {
-      if ( !(t instanceof MessageType)) {
-        continue;
-      }
-      pos = pos + 1;
-      if (type.getType().toString().equals(t.getType().toString())) {
-        break;
-      }
-    }
-    // TODO(kalfonso): throw exception if can't find message
-
-    StringBuilder dependencies = new StringBuilder();
-    dependencies.append("new com.google.protobuf.Descriptors.FileDescriptor[] {\n");
-    for (Field f : type.fields()) {
-      ProtoType fieldType = f.getType();
-      if (fieldType == null) {
-        continue;
-      }
-      ProtoFile fieldProtoFile = schema.protoFile(fieldType);
-      if (fieldProtoFile == null) {
-        continue;
-      }
-      TypeName typeName = fieldType(f);
-      dependencies.append(String.format("%s.getDescriptor(),\n", typeName.toString()));
-    }
-    dependencies.append("}\n");
-
-    result.addStatement(String.format("return com.squareup.wire.protos.TypeDescriptor.getMessageDescriptor(" +
-        "%s,%d,%s" +
-        ")", path, pos, dependencies));
-    result.addCode(";\n");
     return result.build();
   }
 

@@ -45,18 +45,8 @@ class FileDescriptorGenerator(
   }
 
   private fun getDescriptorPath(protoFile: ProtoFile): String {
-    val packageName = when {
-      protoFile.javaPackage() != null -> {
-        protoFile.javaPackage()!!
-      }
-      protoFile.packageName != null -> {
-        protoFile.packageName!!
-      }
-      else -> {
-        ""
-      }
-    }
-    val descriptorName = protoFile.name().plus(".descriptor")
+    val packageName = protoFile.packageName ?: ""
+    val descriptorName = protoFile.name().plus(".desc")
     val packagePath = packageName.replace(".", "/")
     return "$packagePath/$descriptorName"
   }

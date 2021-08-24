@@ -989,8 +989,8 @@ class WireRunTest {
     wireRun.execute(fs, logger)
 
     assertThat(fs.find("wire/message-descriptors")).containsExactlyInAnyOrder(
-        "wire/message-descriptors/com/squareup/polygons/nested_polygon.descriptor",
-        "wire/message-descriptors/squareup/polygons/triangle.descriptor",
+        "wire/message-descriptors/squareup/polygons/nested_polygon.desc",
+        "wire/message-descriptors/squareup/polygons/triangle.desc",
     )
   }
 
